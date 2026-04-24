@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Study AI</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI';
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            margin: 0;
+            padding: 20px;
+            color: white;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .glass {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(12px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        input, button {
+            padding: 10px;
+            border-radius: 10px;
+            border: none;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+        }
+
+        .chat-box {
+            height: 300px;
+            overflow-y: auto;
+        }
+
+        .msg {
+            padding: 10px;
+            margin: 10px;
+            border-radius: 12px;
+            max-width: 70%;
+        }
+
+        .user {
+            background: #667eea;
+            margin-left: auto;
+        }
+
+        .bot {
+            background: rgba(255,255,255,0.3);
+        }
+
+        iframe {
+            width: 100%;
+            height: 200px;
+            border: none;
+            border-radius: 10px;
+        }
+
+        .video-card {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>🚀 Smart Study AI</h1>
+
+<!-- MARKS -->
+<div class="glass">
+    <h3>Add Marks</h3>
+    <form action="/add_marks" method="POST">
+        <input name="subject" placeholder="Subject" required>
+        <input name="score" type="number" placeholder="Marks" required>
+        <button>Add</button>
+    </form>
+
+    <h3>Your Marks</h3>
+    <table border="1" width="100%">
+        <tr><th>Subject</th><th>Marks</th></tr>
+        {% for row in data %}
+        <tr>
+            <td>{{ row[0] }}</td>
+            <td>{{ row[1] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+<div class="glass">
+    <h3>Performance Summary 📊</h3>
+    <p><b>Average:</b> {{ avg }}</p>
+
+    {% if avg < 40 %}
+        <p style="color:red;">⚠️ Poor performance</p>
+    {% elif avg < 70 %}
+        <p style="color:orange;">⚠️ Needs improvement</p>
+    {% else %}
+        <p style="color:lightgreen;">🔥 Great job!</p>
+    {% endif %}
+</div>
+
+<!-- GRAPH -->
+<div class="glass">
+    <h3>Performance 📊</h3>
+    <canvas id="chart"></canvas>
+</div>
+
+<script>
+let subjects = {{ subjects | tojson }};
+let scores = {{ scores | tojson }};
+
+if (subjects.length > 0) {
+    new Chart(document.getElementById("chart"), {
+        type: 'bar',
+        data: {
+            labels: subjects,
+            datasets: [{
+                label: "Marks",
+                data: scores
+            }]
+        }
+    });
+}
+</script>
+
+<!-- CHAT -->
+<div class="glass">
+    <h3>AI Assistant 🤖</h3>
+
+    <div class="chat-box" id="chatBox"></div>
+
+    <input id="msg" placeholder="Ask anything...">
+    <button onclick="sendMsg()">Send</button>
+</div>
+
+<!-- VIDEOS -->
+<div class="glass">
+    <h3>📺 Recommended Videos</h3>
+    <div id="videoBox"></div>
+</div>
+
+<script>
+function addMessage(text, type) {
+    let div = document.createElement("div");
+    div.className = "msg " + type;
+
+    // Highlight final answer
+    text = text.replace(/Final Answer:.*/, '<b style="color:yellow;">$&</b>');
+
+    div.innerHTML = text;
+
+    document.getElementById("chatBox").appendChild(div);
+    document.getElementById("chatBox").scrollTop = 9999;
+}
+
+function sendMsg() {
+    let msg = document.getElementById("msg").value;
+    if (!msg) return;
+
+    addMessage(msg, "user");
+    document.getElementById("msg").value = "";
+
+    addMessage("Typing...", "bot");
+
+    fetch("/chat", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({message: msg})
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.querySelector(".bot:last-child").innerHTML = data.reply;
+
+        let videoBox = document.getElementById("videoBox");
+        videoBox.innerHTML = "";
+
+        if (data.videos) {
+            data.videos.forEach(v => {
+                let card = document.createElement("div");
+                card.className = "video-card";
+
+                let title = document.createElement("p");
+                title.innerText = v.title;
+
+                let iframe = document.createElement("iframe");
+                iframe.src = v.url;
+
+                card.appendChild(title);
+                card.appendChild(iframe);
+
+                videoBox.appendChild(card);
+            });
+        }
+    });
+}
+</script>
+
+</body>
+</html>
