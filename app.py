@@ -1,12 +1,17 @@
 from flask import Flask, render_template, request, redirect, session, jsonify
 import sqlite3
 import requests
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = "secret123"
 
-YOUTUBE_API_KEY = "AIzaSyC9GxuV2TIQZLnQgrK0UJwMQoqtFQyVQj4"
-
+# Secure API key
+YOUTUBE_API_KEY = os.getenv("AIzaSyC9GxuV2TIQZLnQgrK0UJwMQoqtFQyVQj4")
 # ---------- DATABASE ----------
 def init_db():
     conn = sqlite3.connect("database.db")
