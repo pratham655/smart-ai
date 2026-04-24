@@ -4,14 +4,14 @@ import requests
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
+# Load env
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = "secret123"
 
-# Secure API key
-YOUTUBE_API_KEY = os.getenv("AIzaSyC9GxuV2TIQZLnQgrK0UJwMQoqtFQyVQj4")
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
+
 # ---------- DATABASE ----------
 def init_db():
     conn = sqlite3.connect("database.db")
@@ -98,8 +98,16 @@ def add_marks():
 # ---------- YOUTUBE ----------
 def get_videos(query):
     try:
-        url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&q={query}&key={YOUTUBE_API_KEY}&maxResults=6&type=video"
-        res = requests.get(url).json()
+        url = "https://www.googleapis.com/youtube/v3/search"
+        params = {
+            "part": "snippet",
+            "q": query,
+            "key": YOUTUBE_API_KEY,
+            "maxResults": 6,
+            "type": "video"
+        }
+
+        res = requests.get(url, params=params).json()
 
         videos = []
         for item in res.get("items", []):
@@ -115,7 +123,8 @@ def get_videos(query):
             })
 
         return videos[:3]
-    except:
+    except Exception as e:
+        print("YT ERROR:", e)
         return []
 
 # ---------- CHAT ----------
@@ -124,19 +133,18 @@ def chat():
     try:
         msg = request.json.get("message", "")
 
-        # ---------- FINAL SMART PROMPT ----------
+        # ---------- AI RESPONSE ----------
         prompt = f"""
-You are an AI assistant inside a smart learning app.
+Answer properly.
 
 Question: {msg}
 
-Instructions (do NOT include in answer):
-- If user asks for videos → say videos are shown below
-- If numerical → solve directly and give final answer
-- If programming → give logic or simple code
-- If theory → explain in 2-3 lines
+- Numerical → solve directly with final answer
+- Programming → give logic/code
+- Theory → short explanation
+- If videos requested → say "videos are shown below"
 
-Now give only the answer:
+Give only the answer:
 """
 
         response = requests.post(
@@ -147,8 +155,7 @@ Now give only the answer:
                 "stream": False,
                 "options": {
                     "num_predict": 80,
-                    "temperature": 0.2,
-                    "top_k": 20
+                    "temperature": 0.2
                 }
             },
             timeout=90
@@ -156,36 +163,21 @@ Now give only the answer:
 
         reply = response.json().get("response", "").strip()
 
-        # ---------- VIDEO QUERY ----------
-        query_prompt = f"""
-Convert this into a YouTube search query.
-
-Input: {msg}
-
-Only output keywords + 'full tutorial'
-"""
-
-        query_res = requests.post(
-            "http://127.0.0.1:11434/api/generate",
-            json={
-                "model": "phi:latest",
-                "prompt": query_prompt,
-                "stream": False
-            },
-            timeout=60
-        )
-
-        query = query_res.json().get("response", "").strip()
-
+        # ---------- VIDEO LOGIC ----------
         videos = []
-        if any(word in msg.lower() for word in ["video", "learn", "tutorial", "course"]):
+        if any(w in msg.lower() for w in ["video", "learn", "tutorial", "course"]):
+            query = msg + " full tutorial"
+            print("QUERY:", query)
+
             videos = get_videos(query)
+            print("VIDEOS:", videos)
 
         return jsonify({"reply": reply, "videos": videos})
 
-    except:
+    except Exception as e:
+        print("ERROR:", e)
         return jsonify({
-            "reply": "⚠️ AI is busy. Try again.",
+            "reply": "⚠️ AI error. Try again.",
             "videos": []
         })
 

@@ -8,9 +8,8 @@
         body {
             font-family: 'Segoe UI';
             background: linear-gradient(135deg, #667eea, #764ba2);
-            margin: 0;
-            padding: 20px;
             color: white;
+            padding: 20px;
         }
 
         h1 {
@@ -19,10 +18,10 @@
 
         .glass {
             background: rgba(255,255,255,0.15);
-            backdrop-filter: blur(12px);
-            border-radius: 15px;
+            backdrop-filter: blur(10px);
             padding: 20px;
             margin-bottom: 20px;
+            border-radius: 15px;
         }
 
         input, button {
@@ -37,6 +36,10 @@
             cursor: pointer;
         }
 
+        button:hover {
+            transform: scale(1.05);
+        }
+
         .chat-box {
             height: 300px;
             overflow-y: auto;
@@ -45,7 +48,7 @@
         .msg {
             padding: 10px;
             margin: 10px;
-            border-radius: 12px;
+            border-radius: 10px;
             max-width: 70%;
         }
 
@@ -61,12 +64,8 @@
         iframe {
             width: 100%;
             height: 200px;
-            border: none;
             border-radius: 10px;
-        }
-
-        .video-card {
-            margin-bottom: 15px;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -94,8 +93,8 @@
         </tr>
         {% endfor %}
     </table>
-</div>
-<div class="glass">
+
+    <!-- PERFORMANCE -->
     <h3>Performance Summary 📊</h3>
     <p><b>Average:</b> {{ avg }}</p>
 
@@ -110,7 +109,7 @@
 
 <!-- GRAPH -->
 <div class="glass">
-    <h3>Performance 📊</h3>
+    <h3>Performance Graph</h3>
     <canvas id="chart"></canvas>
 </div>
 
@@ -152,12 +151,7 @@ if (subjects.length > 0) {
 function addMessage(text, type) {
     let div = document.createElement("div");
     div.className = "msg " + type;
-
-    // Highlight final answer
-    text = text.replace(/Final Answer:.*/, '<b style="color:yellow;">$&</b>');
-
     div.innerHTML = text;
-
     document.getElementById("chatBox").appendChild(div);
     document.getElementById("chatBox").scrollTop = 9999;
 }
@@ -183,21 +177,11 @@ function sendMsg() {
         let videoBox = document.getElementById("videoBox");
         videoBox.innerHTML = "";
 
-        if (data.videos) {
+        if (data.videos && data.videos.length > 0) {
             data.videos.forEach(v => {
-                let card = document.createElement("div");
-                card.className = "video-card";
-
-                let title = document.createElement("p");
-                title.innerText = v.title;
-
                 let iframe = document.createElement("iframe");
                 iframe.src = v.url;
-
-                card.appendChild(title);
-                card.appendChild(iframe);
-
-                videoBox.appendChild(card);
+                videoBox.appendChild(iframe);
             });
         }
     });
